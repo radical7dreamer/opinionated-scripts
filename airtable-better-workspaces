@@ -1,0 +1,135 @@
+// ==UserScript==
+// @name         Airtable Focus Mode (Stable v13)
+// @namespace    http://tampermonkey.net/
+// @version      13.0
+// @description  Stable redirect, applies Focus Mode ONLY to Workspaces, restores DB view.
+// @author       You
+// @match        https://airtable.com/*
+// @grant        none
+// @run-at       document-start
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // --- CONFIGURATION ---
+    const PAGE_BG_COLOR = "#d5dce6"; // Gray
+    const CARD_BG_COLOR = "#ffffff"; // White
+    const NEW_TITLE_TEXT = "BUSINESS OS";
+
+    // --- 1. PREVENT INFINITE REDIRECTS ---
+    // We only redirect if we are STRICTLY on the root domain and NOT on workspaces
+    const currentPath = window.location.pathname;
+    if (currentPath === '/' || currentPath === '') {
+        // Stop the script here, perform the redirect, and exit to prevent loops
+        window.location.replace('https://airtable.com/workspaces');
+        return;
+    }
+
+    // --- 2. CSS STYLES (Scoped) ---
+    // All rules require .focus-mode-active on the body tag
+    const cssStyles = `
+        /* HIDE NAVIGATION & SIDEBARS */
+        .focus-mode-active header.flex.items-center.width-full,
+        .focus-mode-active header.css-mld7rk,
+        .focus-mode-active nav.css-4bwjae,
+        .focus-mode-active div.homescreen-nav-wrapper,
+        .focus-mode-active div.homescreen-nav-anchored-wrapper,
+        .focus-mode-active div.css-p8ddof.css-1gvvzax,
+        .focus-mode-active div.absolute.flex.flex-column.height-full.items-center.left-0,
+        .focus-mode-active nav[data-testid="homescreen2-sidebar"],
+        .focus-mode-active #d5f7dbff972de23ed2000cb8fd7db275,
+        .focus-mode-active div[class*="leftSidebar"],
+        .focus-mode-active aside {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        /* RENAME HEADER "All Workspaces" -> "BUSINESS OS" */
+        .focus-mode-active h1.font-family-display-updated.heading-size-xlarge {
+            font-size: 0 !important;
+            line-height: 0 !important;
+        }
+        .focus-mode-active h1.font-family-display-updated.heading-size-xlarge::before {
+            content: "${NEW_TITLE_TEXT}" !important;
+            font-size: 24px !important;
+            line-height: 1.5 !important;
+            display: block !important;
+            visibility: visible !important;
+            margin-bottom: 20px !important;
+        }
+
+        /* BACKGROUND COLORS (Gray Page) */
+        .focus-mode-active,
+        .focus-mode-active body,
+        .focus-mode-active html,
+        .focus-mode-active #hyperbaseContainer,
+        .focus-mode-active #applicationContainer,
+        .focus-mode-active .baymax,
+        .focus-mode-active div.pt3.px3-and-half.flex-auto {
+            background-color: ${PAGE_BG_COLOR} !important;
+        }
+
+        /* TRANSPARENCY (Let Gray Show Through) */
+        .focus-mode-active .homeScreenContentContainer,
+        .focus-mode-active .scrollOverlay,
+        .focus-mode-active .antiscroll-inner,
+        .focus-mode-active .centerPane {
+            background-color: transparent !important;
+        }
+
+        /* KEEP CARDS WHITE */
+        .focus-mode-active div[class*="shadow-elevation"],
+        .focus-mode-active a[class*="shadow-elevation"],
+        .focus-mode-active div[class*="rounded"]:not([class*="transparent"]),
+        .focus-mode-active .workspaceBaseCard,
+        .focus-mode-active .baseCard {
+            background-color: ${CARD_BG_COLOR} !important;
+        }
+
+        /* LAYOUT FIXES (Full Screen) */
+        .focus-mode-active #hyperbaseContainer,
+        .focus-mode-active .homeScreenContentContainer {
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            top: 0 !important;
+            left: 0 !important;
+            position: absolute !important;
+        }
+    `;
+
+    // Inject CSS
+    const styleElement = document.createElement('style');
+    styleElement.type = 'text/css';
+    styleElement.innerHTML = cssStyles;
+    document.head.appendChild(styleElement);
+
+    // --- 3. INTELLIGENT TOGGLE ---
+    function updateFocusMode() {
+        // Ensure body exists before trying to add classes
+        if (!document.body) return;
+
+        const path = window.location.pathname;
+
+        // Check if we are on the workspaces page
+        const isWorkspacesPage = path.indexOf('/workspaces') !== -1;
+
+        if (isWorkspacesPage) {
+            if (!document.body.classList.contains('focus-mode-active')) {
+                document.body.classList.add('focus-mode-active');
+            }
+        } else {
+            // If we are on a database/app or any other page, remove the class immediately
+            if (document.body.classList.contains('focus-mode-active')) {
+                document.body.classList.remove('focus-mode-active');
+            }
+        }
+    }
+
+    // --- 4. EXECUTION ---
+    // Run periodically to catch SPA navigation changes (Airtable doesn't always reload the page)
+    setInterval(updateFocusMode, 300);
+
+})();
