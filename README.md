@@ -8,6 +8,7 @@ I have so many tables and workspaces that the default Airtable interface is too 
 - Removes top and left sidebar
 - Darkens the background
 - Renames the "Workspaces" into something custom (Like "Business OS")
+- Easy to customize the bg color and text
 
 Before:
 <img width="1920" height="720" alt="image" src="https://github.com/user-attachments/assets/624ffb78-4a4a-42a0-bc27-274f96f016df" />
